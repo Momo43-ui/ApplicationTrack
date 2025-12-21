@@ -32,6 +32,7 @@ class Candidature(db.Model):
     annonce = db.Column(db.Text, nullable=False)
     date = db.Column(db.String(20), nullable=False)
     etat = db.Column(db.String(50), default='en_attente')
+    notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -42,6 +43,7 @@ class Candidature(db.Model):
             'annonce': self.annonce,
             'date': self.date,
             'etat': self.etat,
+            'notes': self.notes,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }

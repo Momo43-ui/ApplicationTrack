@@ -1,7 +1,11 @@
 import os
-from flask import Flask, jsonify, request
+import io
+import csv
+from datetime import datetime, timedelta
+from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func, extract
 from config import Config
 from models import db, User, Candidature
 
@@ -72,9 +76,42 @@ def login():
 
 @app.route('/api/users/<int:user_id>/candidatures', methods=['GET'])
 def get_candidatures(user_id):
-    """Récupérer toutes les candidatures d'un utilisateur"""
+    """Récupérer toutes les candidatures d'un utilisateur avec recherche et filtres"""
     user = User.query.get_or_404(user_id)
-    candidatures = [c.to_dict() for c in user.candidatures]
+    
+    # Commencer par toutes les candidatures de l'utilisateur
+    query = Candidature.query.filter_by(user_id=user_id)
+    
+    # Filtre par état
+    etat = request.args.get('etat')
+    if etat:
+        query = query.filter(Candidature.etat == etat)
+    
+    # Recherche par entreprise
+    search = request.args.get('search')
+    if search:
+        query = query.filter(Candidature.entreprise.ilike(f'%{search}%'))
+    
+    # Filtre par date (range)
+    date_debut = request.args.get('date_debut')
+    date_fin = request.args.get('date_fin')
+    if date_debut:
+        query = query.filter(Candidature.date >= date_debut)
+    if date_fin:
+        query = query.filter(Candidature.date <= date_fin)
+    
+    # Tri
+    sort_by = request.args.get('sort_by', 'created_at')
+    sort_order = request.args.get('sort_order', 'desc')
+    
+    if sort_by == 'date':
+        query = query.order_by(Candidature.date.desc() if sort_order == 'desc' else Candidature.date.asc())
+    elif sort_by == 'entreprise':
+        query = query.order_by(Candidature.entreprise.asc() if sort_order == 'asc' else Candidature.entreprise.desc())
+    else:  # created_at par défaut
+        query = query.order_by(Candidature.created_at.desc() if sort_order == 'desc' else Candidature.created_at.asc())
+    
+    candidatures = [c.to_dict() for c in query.all()]
     return jsonify(candidatures), 200
 
 @app.route('/api/users/<int:user_id>/candidatures', methods=['POST'])
@@ -91,7 +128,8 @@ def create_candidature(user_id):
         entreprise=data['entreprise'],
         annonce=data['annonce'],
         date=data['date'],
-        etat=data.get('etat', 'en_attente')
+        etat=data.get('etat', 'en_attente'),
+        notes=data.get('notes', '')
     )
     
     db.session.add(nouvelle_candidature)
@@ -122,6 +160,8 @@ def update_candidature(candidature_id):
         candidature.date = data['date']
     if 'etat' in data:
         candidature.etat = data['etat']
+    if 'notes' in data:
+        candidature.notes = data['notes']
     
     db.session.commit()
     
@@ -176,6 +216,108 @@ def get_stats(user_id):
     }
     
     return jsonify(stats), 200
+
+@app.route('/api/users/<int:user_id>/stats/advanced', methods=['GET'])
+def get_advanced_stats(user_id):
+    """Obtenir des statistiques avancées avec timeline et taux de conversion"""
+    user = User.query.get_or_404(user_id)
+    
+    # Statistiques de base
+    candidatures = user.candidatures
+    total = len(candidatures)
+    
+    if total == 0:
+        return jsonify({
+            'total': 0,
+            'stats_par_etat': {},
+            'taux_reponse': 0,
+            'taux_entretien': 0,
+            'taux_acceptation': 0,
+            'timeline': [],
+            'stats_mensuelles': []
+        }), 200
+    
+    # Statistiques par état
+    stats_par_etat = {
+        'en_attente': len([c for c in candidatures if c.etat == 'en_attente']),
+        'entretien_passe': len([c for c in candidatures if c.etat == 'entretien_passe']),
+        'accepte': len([c for c in candidatures if c.etat == 'accepte']),
+        'refus_etude': len([c for c in candidatures if c.etat == 'refus_etude']),
+        'refuse_entretien': len([c for c in candidatures if c.etat == 'refuse_entretien']),
+        'sans_reponse': len([c for c in candidatures if c.etat == 'sans_reponse']),
+        'sans_reponse_entretien': len([c for c in candidatures if c.etat == 'sans_reponse_entretien'])
+    }
+    
+    # Taux de conversion
+    reponses = total - stats_par_etat['sans_reponse'] - stats_par_etat['en_attente']
+    taux_reponse = (reponses / total * 100) if total > 0 else 0
+    
+    entretiens = stats_par_etat['entretien_passe'] + stats_par_etat['refuse_entretien'] + stats_par_etat['accepte']
+    taux_entretien = (entretiens / total * 100) if total > 0 else 0
+    
+    acceptations = stats_par_etat['accepte']
+    taux_acceptation = (acceptations / total * 100) if total > 0 else 0
+    
+    # Timeline des candidatures (7 derniers jours)
+    today = datetime.now()
+    timeline = []
+    for i in range(6, -1, -1):
+        date = today - timedelta(days=i)
+        date_str = date.strftime('%Y-%m-%d')
+        count = len([c for c in candidatures if c.created_at.strftime('%Y-%m-%d') == date_str])
+        timeline.append({'date': date_str, 'count': count})
+    
+    # Statistiques mensuelles (6 derniers mois)
+    stats_mensuelles = []
+    for i in range(5, -1, -1):
+        date = today - timedelta(days=i*30)
+        mois = date.strftime('%Y-%m')
+        count = len([c for c in candidatures if c.created_at.strftime('%Y-%m') == mois])
+        stats_mensuelles.append({'mois': mois, 'count': count})
+    
+    return jsonify({
+        'total': total,
+        'stats_par_etat': stats_par_etat,
+        'taux_reponse': round(taux_reponse, 2),
+        'taux_entretien': round(taux_entretien, 2),
+        'taux_acceptation': round(taux_acceptation, 2),
+        'timeline': timeline,
+        'stats_mensuelles': stats_mensuelles
+    }), 200
+
+@app.route('/api/users/<int:user_id>/candidatures/export', methods=['GET'])
+def export_candidatures(user_id):
+    """Exporter les candidatures en CSV"""
+    user = User.query.get_or_404(user_id)
+    candidatures = user.candidatures
+    
+    # Créer le fichier CSV en mémoire
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # En-têtes
+    writer.writerow(['ID', 'Entreprise', 'Annonce', 'Date', 'État', 'Notes', 'Créé le', 'Mis à jour le'])
+    
+    # Données
+    for c in candidatures:
+        writer.writerow([
+            c.id,
+            c.entreprise,
+            c.annonce,
+            c.date,
+            c.etat,
+            c.notes or '',
+            c.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            c.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+        ])
+    
+    # Préparer la réponse
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=candidatures_{user_id}_{datetime.now().strftime("%Y%m%d")}.csv'
+    
+    return response
 
 # ============= Routes utilitaires =============
 

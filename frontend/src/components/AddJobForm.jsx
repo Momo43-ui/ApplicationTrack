@@ -4,7 +4,8 @@ function AddJobForm({ onAddJob }) {
   const [formData, setFormData] = useState({
     entreprise: '',
     annonce: '',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    notes: ''
   });
 
   const [notification, setNotification] = useState('');
@@ -32,7 +33,8 @@ function AddJobForm({ onAddJob }) {
     setFormData({
       entreprise: '',
       annonce: '',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      notes: ''
     });
 
     // Effacer la notification après 3 secondes
@@ -91,6 +93,20 @@ function AddJobForm({ onAddJob }) {
             name="date"
             value={formData.date}
             onChange={handleChange}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Notes
+          </label>
+          <textarea
+            name="notes"
+            value={formData.notes}
+            onChange={handleChange}
+            placeholder="Ajoutez des notes sur cette candidature..."
+            rows="3"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>

@@ -31,8 +31,18 @@ export const login = async (username, password) => {
 
 // ============= Candidatures =============
 
-export const getCandidatures = async (userId) => {
-  const response = await fetch(`${API_URL}/users/${userId}/candidatures`);
+export const getCandidatures = async (userId, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.search) params.append('search', filters.search);
+  if (filters.etat) params.append('etat', filters.etat);
+  if (filters.date_debut) params.append('date_debut', filters.date_debut);
+  if (filters.date_fin) params.append('date_fin', filters.date_fin);
+  if (filters.sort_by) params.append('sort_by', filters.sort_by);
+  if (filters.sort_order) params.append('sort_order', filters.sort_order);
+  
+  const queryString = params.toString();
+  const url = `${API_URL}/users/${userId}/candidatures${queryString ? `?${queryString}` : ''}`;
+  const response = await fetch(url);
   return handleResponse(response);
 };
 
@@ -75,6 +85,19 @@ export const deleteCandidature = async (candidatureId) => {
 export const getStats = async (userId) => {
   const response = await fetch(`${API_URL}/users/${userId}/stats`);
   return handleResponse(response);
+};
+
+export const getAdvancedStats = async (userId) => {
+  const response = await fetch(`${API_URL}/users/${userId}/stats/advanced`);
+  return handleResponse(response);
+};
+
+export const exportCandidatures = async (userId) => {
+  const response = await fetch(`${API_URL}/users/${userId}/candidatures/export`);
+  if (!response.ok) {
+    throw new Error('Erreur lors de l\'export');
+  }
+  return response.blob();
 };
 
 // ============= Health Check =============
