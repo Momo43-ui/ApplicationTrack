@@ -2,35 +2,76 @@ import { useState, useEffect } from 'react';
 import AddJobForm from './components/AddJobForm';
 import JobTracker from './components/JobTracker';
 import JobConsultation from './pages/JobConsultation';
+import Auth from './components/Auth';
+import { getCandidatures, createCandidature, updateCandidatureEtat } from './services/api';
 import './App.css';
 
 function App() {
-  const [jobs, setJobs] = useState(() => {
-    // Charger les candidatures depuis localStorage au démarrage
-    const savedJobs = localStorage.getItem('applicationTrack_jobs');
-    return savedJobs ? JSON.parse(savedJobs) : [];
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const [currentPage, setCurrentPage] = useState('dashboard'); // 'dashboard' ou 'consultation'
+  const [jobs, setJobs] = useState([]);
+  const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedJob, setSelectedJob] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Sauvegarder les candidatures dans localStorage à chaque modification
+  // Charger les candidatures depuis l'API au démarrage
   useEffect(() => {
-    localStorage.setItem('applicationTrack_jobs', JSON.stringify(jobs));
-  }, [jobs]);
+    if (user) {
+      loadCandidatures();
+    }
+  }, [user]);
 
-  const handleAddJob = (newJob) => {
-    setJobs(prevJobs => [...prevJobs, newJob]);
+  const loadCandidatures = async () => {
+    try {
+      setLoading(true);
+      const data = await getCandidatures(user.id);
+      setJobs(data);
+    } catch (err) {
+      setError('Erreur lors du chargement des candidatures');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUpdateJobStatus = (jobId, newStatus) => {
-    setJobs(prevJobs => 
-      prevJobs.map(job => 
-        job.id === jobId 
-          ? { ...job, etat: newStatus } 
+  const handleLogin = (userData) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+    setJobs([]);
+  };
+
+  const handleAddJob = async (newJobData) => {
+    try {
+      const response = await createCandidature(user.id, newJobData);
+      setJobs(prevJobs => [...prevJobs, response.candidature]);
+    } catch (err) {
+      setError('Erreur lors de l\'ajout de la candidature');
+      console.error(err);
+    }
+  };
+
+  const handleUpdateJobStatus = async (jobId, newStatus) => {
+    try {
+      await updateCandidatureEtat(jobId, newStatus);
+      setJobs(prevJobs => 
+        prevJobs.map(job => 
+          job.id === jobId 
+            ? { ...job, etat: newStatus } 
           : job
-      )
-    );
+        )
+      );
+    } catch (err) {
+      setError('Erreur lors de la mise à jour du statut');
+      console.error(err);
+    }
   };
 
   const handleViewJob = (job) => {
@@ -42,6 +83,11 @@ function App() {
     setCurrentPage('dashboard');
     setSelectedJob(null);
   };
+
+  // Si non connecté, afficher la page de connexion
+  if (!user) {
+    return <Auth onLogin={handleLogin} />;
+  }
 
   const etats = {
     en_attente: { label: 'En attente', color: 'bg-gray-200 text-gray-800' },
@@ -65,29 +111,51 @@ function App() {
       <header className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-blue-600">
-              📋 ApplicationTrack
-            </h1>
-            <div className="text-sm text-gray-500">
-              Suivi de candidatures
+            <div>
+              <h1 className="text-3xl font-bold text-blue-600">
+                📋 ApplicationTrack
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Bienvenue, {user.username}
+              </p>
             </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            >
+              Déconnexion
+            </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="space-y-8">
-          {/* Formulaire d'ajout */}
-          <AddJobForm onAddJob={handleAddJob} />
-          
-          {/* Tableau de suivi */}
-          <JobTracker 
-            jobs={jobs} 
-            onUpdateJobStatus={handleUpdateJobStatus}
-            onViewJob={handleViewJob}
-          />
-        </div>
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {error}
+            <button onClick={() => setError('')} className="float-right font-bold">×</button>
+          </div>
+        )}
+        
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Chargement...</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {/* Formulaire d'ajout */}
+            <AddJobForm onAddJob={handleAddJob} />
+            
+            {/* Tableau de suivi */}
+            <JobTracker 
+              jobs={jobs} 
+              onUpdateJobStatus={handleUpdateJobStatus}
+              onViewJob={handleViewJob}
+            />
+          </div>
+        )}
       </main>
 
       {/* Footer */}
