@@ -1,14 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Moon, Sun } from 'lucide-react';
+﻿import { useState, useEffect } from 'react';
+import { Menu, X } from 'lucide-react'';
 import AddJobForm from './components/AddJobForm';
 import JobTracker from './components/JobTracker';
 import JobConsultation from './pages/JobConsultation';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import AdvancedFilters from './components/AdvancedFilters';
-import ChatBot from './components/ChatBot';
-import CoverLetterGenerator from './components/CoverLetterGenerator';
-import CalendarView from './components/CalendarView';
 import { ToastContainer, useToast } from './components/Toast';
 import { getCandidatures, createCandidature, updateCandidatureEtat, getStats } from './services/api';
 import './App.css';
@@ -49,7 +46,7 @@ function App() {
     localStorage.setItem('darkMode', darkMode);
   }, [darkMode]);
 
-  // Charger les candidatures depuis l'API au démarrage
+  // Charger les candidatures depuis l'API au dÃ©marrage
   useEffect(() => {
     if (user) {
       loadCandidatures();
@@ -89,7 +86,7 @@ function App() {
     setUser(null);
     setJobs([]);
     setStats(null);
-    addToast('Vous êtes déconnecté', 'info');
+    addToast('Vous Ãªtes dÃ©connectÃ©', 'info');
   };
 
   const handleAddJob = async (newJobData) => {
@@ -97,7 +94,7 @@ function App() {
       const response = await createCandidature(user.id, newJobData);
       setJobs(prevJobs => [...prevJobs, response.candidature]);
       loadStats();
-      addToast('Candidature ajoutée avec succès !', 'success');
+      addToast('Candidature ajoutÃ©e avec succÃ¨s !', 'success');
     } catch (err) {
       addToast('Erreur lors de l\'ajout de la candidature', 'error');
       console.error(err);
@@ -115,9 +112,9 @@ function App() {
         )
       );
       loadStats();
-      addToast('Statut mis à jour !', 'success');
+      addToast('Statut mis Ã  jour !', 'success');
     } catch (err) {
-      addToast('Erreur lors de la mise à jour du statut', 'error');
+      addToast('Erreur lors de la mise Ã  jour du statut', 'error');
       console.error(err);
     }
   };
@@ -136,7 +133,7 @@ function App() {
     setFilters(newFilters);
   };
 
-  // Si non connecté, afficher la page de connexion
+  // Si non connectÃ©, afficher la page de connexion
   if (!user) {
     return (
       <>
@@ -148,12 +145,12 @@ function App() {
 
   const etats = {
     en_attente: { label: 'En attente', color: 'bg-gray-200 text-gray-800' },
-    refus_etude: { label: 'Refus après études', color: 'bg-red-200 text-red-800' },
-    entretien_passe: { label: 'Entretien passé', color: 'bg-blue-200 text-blue-800' },
-    sans_reponse: { label: 'Sans réponse', color: 'bg-yellow-200 text-yellow-800' },
-    accepte: { label: 'Accepté', color: 'bg-green-200 text-green-800' },
-    refuse_entretien: { label: 'Refusé après entretien', color: 'bg-red-300 text-red-900' },
-    sans_reponse_entretien: { label: 'Sans réponse après entretien', color: 'bg-orange-200 text-orange-800' }
+    refus_etude: { label: 'Refus aprÃ¨s Ã©tudes', color: 'bg-red-200 text-red-800' },
+    entretien_passe: { label: 'Entretien passÃ©', color: 'bg-blue-200 text-blue-800' },
+    sans_reponse: { label: 'Sans rÃ©ponse', color: 'bg-yellow-200 text-yellow-800' },
+    accepte: { label: 'AcceptÃ©', color: 'bg-green-200 text-green-800' },
+    refuse_entretien: { label: 'RefusÃ© aprÃ¨s entretien', color: 'bg-red-300 text-red-900' },
+    sans_reponse_entretien: { label: 'Sans rÃ©ponse aprÃ¨s entretien', color: 'bg-orange-200 text-orange-800' }
   };
 
   // Affichage de la page de consultation
@@ -170,13 +167,13 @@ function App() {
   if (currentPage === 'stats') {
     return (
       <div className={darkMode ? 'dark' : ''}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-          <header className="bg-white dark:bg-gray-800 shadow-md">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+          <header className="bg-white shadow-md">
             <div className="max-w-7xl mx-auto px-4 py-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    📊 Statistiques
+                  <h1 className="text-3xl font-bold text-blue-600">
+                    ðŸ“Š Statistiques
                   </h1>
                 </div>
                 <div className="flex gap-2">
@@ -188,7 +185,7 @@ function App() {
                   </button>
                   <button
                     onClick={() => setDarkMode(!darkMode)}
-                    className="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300:bg-gray-600 transition-colors"
                   >
                     {darkMode ? <Sun className="text-yellow-400" size={24} /> : <Moon className="text-gray-700" size={24} />}
                   </button>
@@ -196,7 +193,7 @@ function App() {
                     onClick={handleLogout}
                     className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                   >
-                    Déconnexion
+                    DÃ©connexion
                   </button>
                 </div>
               </div>
@@ -211,109 +208,19 @@ function App() {
     );
   }
 
-  // Affichage du générateur de lettre de motivation
-  if (currentPage === 'coverletter') {
-    return (
-      <div className={darkMode ? 'dark' : ''}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-          <header className="bg-white dark:bg-gray-800 shadow-md">
-            <div className="max-w-7xl mx-auto px-4 py-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    ✍️ Générateur de Lettre de Motivation
-                  </h1>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage('dashboard')}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Retour
-                  </button>
-                  <button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {darkMode ? <Sun className="text-yellow-400" size={24} /> : <Moon className="text-gray-700" size={24} />}
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    Déconnexion
-                  </button>
-                </div>
-              </div>
-            </div>
-          </header>
-          <main className="max-w-7xl mx-auto px-4 py-8">
-            <CoverLetterGenerator />
-          </main>
-        </div>
-        <ToastContainer toasts={toasts} removeToast={removeToast} />
-      </div>
-    );
-  }
-
-  // Affichage du calendrier
-  if (currentPage === 'calendar') {
-    return (
-      <div className={darkMode ? 'dark' : ''}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-          <header className="bg-white dark:bg-gray-800 shadow-md">
-            <div className="max-w-7xl mx-auto px-4 py-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    📅 Calendrier des Candidatures
-                  </h1>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage('dashboard')}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Retour
-                  </button>
-                  <button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {darkMode ? <Sun className="text-yellow-400" size={24} /> : <Moon className="text-gray-700" size={24} />}
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    Déconnexion
-                  </button>
-                </div>
-              </div>
-            </div>
-          </header>
-          <main className="max-w-7xl mx-auto px-4 py-8">
-            <CalendarView candidatures={jobs} />
-          </main>
-        </div>
-        <ToastContainer toasts={toasts} removeToast={removeToast} />
-      </div>
-    );
-  }
-
   // Affichage du dashboard principal
   return (
     <div className={darkMode ? 'dark' : ''}>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         {/* Header */}
-        <header className="bg-white dark:bg-gray-800 shadow-md">
+        <header className="bg-white shadow-md">
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                  📋 ApplicationTrack
+                <h1 className="text-3xl font-bold text-blue-600">
+                  ðŸ“‹ ApplicationTrack
                 </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-sm text-gray-500 mt-1">
                   Bienvenue, {user.username}
                 </p>
               </div>
@@ -322,23 +229,11 @@ function App() {
                   onClick={() => setCurrentPage('stats')}
                   className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                 >
-                  📊 Statistiques
-                </button>
-                <button
-                  onClick={() => setCurrentPage('coverletter')}
-                  className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-                >
-                  ✍️ Lettre de motivation
-                </button>
-                <button
-                  onClick={() => setCurrentPage('calendar')}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-                >
-                  📅 Calendrier
+                  ðŸ“Š Statistiques
                 </button>
                 <button
                   onClick={() => setDarkMode(!darkMode)}
-                  className="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300:bg-gray-600 transition-colors"
                   title={darkMode ? 'Mode clair' : 'Mode sombre'}
                 >
                   {darkMode ? <Sun className="text-yellow-400" size={24} /> : <Moon className="text-gray-700" size={24} />}
@@ -347,7 +242,7 @@ function App() {
                   onClick={handleLogout}
                   className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                 >
-                  Déconnexion
+                  DÃ©connexion
                 </button>
               </div>
             </div>
@@ -359,14 +254,14 @@ function App() {
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600 dark:text-gray-300">Chargement...</p>
+              <p className="mt-4 text-gray-600">Chargement...</p>
             </div>
           ) : (
             <div className="space-y-8">
               {/* Formulaire d'ajout */}
               <AddJobForm onAddJob={handleAddJob} />
               
-              {/* Filtres avancés */}
+              {/* Filtres avancÃ©s */}
               <AdvancedFilters onFilterChange={handleFilterChange} currentFilters={filters} />
               
               {/* Tableau de suivi */}
@@ -380,15 +275,12 @@ function App() {
         </main>
 
         {/* Footer */}
-        <footer className="bg-white dark:bg-gray-800 mt-12 border-t border-gray-200 dark:border-gray-700">
-          <div className="max-w-7xl mx-auto px-4 py-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-            <p>ApplicationTrack © 2025 - Gérez vos candidatures efficacement</p>
+        <footer className="bg-white mt-12 border-t border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 py-6 text-center text-gray-500 text-sm">
+            <p>ApplicationTrack Â© 2025 - GÃ©rez vos candidatures efficacement</p>
           </div>
         </footer>
       </div>
-      
-      {/* Chatbot AI */}
-      <ChatBot user={user} candidatures={jobs} />
       
       {/* Toast notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
