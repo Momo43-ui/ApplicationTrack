@@ -47,48 +47,43 @@ class ChatBotService:
     ) -> str:
         """Construit le prompt avec contexte"""
         
-        # Analyser les candidatures
-        stats = self._analyze_candidatures(candidatures) if candidatures else {}
+        # Déterminer si l'utilisateur demande vraiment des infos sur les candidatures
+        message_lower = user_message.lower()
+        needs_candidatures = any(word in message_lower for word in [
+            'candidature', 'postule', 'entreprise', 'statut', 'combien', 
+            'statistique', 'analyse', 'entretien', 'refus', 'accepté'
+        ])
         
-        prompt = f"""Tu es un assistant virtuel expert en recherche d'emploi et suivi de candidatures. Tu t'appelles "Assistant ApplicationTrack".
+        # Analyser les candidatures seulement si nécessaire
+        stats = {}
+        if needs_candidatures and candidatures:
+            stats = self._analyze_candidatures(candidatures)
+        
+        prompt = f"""Tu es un assistant virtuel pour le suivi de candidatures. Réponds de manière CONCISE et PERTINENTE.
 
-**TON RÔLE :**
-- Analyser les candidatures de l'utilisateur
-- Donner des conseils personnalisés et pratiques
-- Aider à la rédaction (emails, relances)
-- Préparer aux entretiens
-- Motiver et encourager l'utilisateur
-
-**CONTEXTE DE L'UTILISATEUR :**
-{f"- Prénom : {user_info.get('username', 'Utilisateur')}" if user_info else ""}
-- Nombre total de candidatures : {stats.get('total', 0)}
-- En attente de réponse : {stats.get('en_attente', 0)}
-- Entretiens passés : {stats.get('entretiens', 0)}
-- Refus : {stats.get('refuses', 0)}
-- Acceptées : {stats.get('acceptees', 0)}
+**MESSAGE :** "{user_message}"
 """
 
-        if candidatures and len(candidatures) > 0:
-            prompt += "\n**DERNIÈRES CANDIDATURES :**\n"
-            for c in candidatures[:5]:  # 5 dernières
-                prompt += f"- {c.get('entreprise', 'N/A')} ({c.get('etat', 'N/A')}) - {c.get('type_contrat', 'N/A')} à {c.get('localisation', 'N/A')}\n"
+        # Ajouter le contexte seulement si pertinent
+        if needs_candidatures and stats:
+            prompt += f"""
+**STATISTIQUES :**
+- Total : {stats.get('total', 0)} | En attente : {stats.get('en_attente', 0)} | Entretiens : {stats.get('entretiens', 0)} | Refus : {stats.get('refuses', 0)} | Acceptées : {stats.get('acceptees', 0)}
+"""
+            if candidatures and len(candidatures) > 0:
+                prompt += "\n**DERNIÈRES CANDIDATURES :**\n"
+                for c in candidatures[:3]:  # Seulement 3
+                    prompt += f"- {c.get('entreprise', 'N/A')} ({c.get('etat', 'N/A')})\n"
         
-        prompt += f"""
-
-**MESSAGE DE L'UTILISATEUR :**
-"{user_message}"
-
+        prompt += """
 **INSTRUCTIONS :**
-1. Réponds de manière amicale, concise mais COMPLÈTE
-2. Utilise des emojis pour rendre la conversation plus vivante
-3. Si l'utilisateur demande des statistiques, base-toi sur le contexte ci-dessus
-4. Si l'utilisateur demande des conseils, sois spécifique et actionnable
-5. Si l'utilisateur veut rédiger quelque chose, fournis un modèle complet et personnalisé
-6. Adapte ton ton : encourageant si refus, félicitant si accepté, motivant si en recherche
-7. IMPORTANT : Génère une réponse COMPLÈTE, ne t'arrête pas au milieu d'une phrase
-8. Maximum 300 mots dans ta réponse
+1. Si c'est une salutation simple ("bonjour", "comment vas-tu"), réponds brièvement et amicalement
+2. Si on te demande des stats, fournis-les de manière claire
+3. Si on demande des conseils, sois précis et actionnable
+4. Utilise des emojis mais reste professionnel
+5. RESTE BREF : Maximum 150 mots pour les questions simples, 250 pour les analyses
 
-Génère une réponse utile, personnalisée et COMPLÈTE."""
+Réponds maintenant de manière CONCISE et COMPLÈTE :"""
         
         return prompt
     
@@ -127,15 +122,24 @@ Génère une réponse utile, personnalisée et COMPLÈTE."""
                     }],
                     'generationConfig': {
                         'temperature': 0.7,
-                        'maxOutputTokens': 1500  # Augmenté pour réponses complètes
+                        'maxOutputTokens': 800,  # Réduit pour réponses plus courtes
+                        'topP': 0.95,
+                        'topK': 40
                     }
                 },
                 timeout=30
             )
-            response.raise_for_status()
+            
+            if not response.ok:
+                print(f"[CHATBOT] Erreur API: {response.status_code} - {response.text}")
+                raise Exception(f"Erreur API Gemini: {response.status_code}")
+            
             data = response.json()
             
-            # Vérifier que la réponse est complète
+            if 'candidates' not in data or len(data['candidates']) == 0:
+                print(f"[CHATBOT] Pas de candidats dans la réponse: {data}")
+                raise Exception("Réponse Gemini vide")
+            
             response_text = data['candidates'][0]['content']['parts'][0]['text']
             
             print(f"[CHATBOT] Réponse générée: {len(response_text)} caractères")
@@ -145,7 +149,11 @@ Génère une réponse utile, personnalisée et COMPLÈTE."""
                 'response': response_text,
                 'provider': 'Gemini 2.5 Flash'
             }
+        except requests.exceptions.RequestException as e:
+            print(f"[CHATBOT] Erreur réseau: {e}")
+            raise Exception(f"Erreur de connexion à l'API: {str(e)}")
         except Exception as e:
+            print(f"[CHATBOT] Erreur: {e}")
             raise e
     
     def _generate_fallback_response(self, user_message: str, candidatures: Optional[List[Dict]]) -> Dict:

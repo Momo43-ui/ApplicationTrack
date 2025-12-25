@@ -289,3 +289,212 @@ Dans l'attente de votre retour, je vous prie d'agréer, Madame, Monsieur, l'expr
             'provider': 'Template personnalisé (aucune clé API configurée)',
             'tokens_used': 0
         }
+    
+    def parse_job_announcement(self, text: str, url: Optional[str] = None) -> Dict:
+        """
+        Parse automatiquement une annonce et extrait les informations clés
+        Accepte soit du texte direct, soit une URL à scraper
+        """
+        if not self.gemini_key:
+            return {'success': False, 'error': 'Gemini API key non configurée'}
+        
+        # Si URL fournie, scraper le contenu
+        if url and not text:
+            try:
+                print(f"[AI Parse] Scraping URL: {url}")
+                from bs4 import BeautifulSoup
+                
+                response = requests.get(url, timeout=15, headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                })
+                
+                if response.status_code != 200:
+                    return {'success': False, 'error': f'Erreur lors du scraping: Status {response.status_code}'}
+                
+                soup = BeautifulSoup(response.content, 'lxml')
+                
+                # Extraire le texte principal (enlever scripts, styles, etc.)
+                for script in soup(['script', 'style', 'nav', 'header', 'footer']):
+                    script.decompose()
+                
+                text = soup.get_text(separator='\n', strip=True)
+                
+                # Limiter à 5000 caractères pour l'API
+                text = text[:5000]
+                
+                print(f"[AI Parse] Texte extrait: {len(text)} caractères")
+                
+            except Exception as e:
+                print(f"[AI Parse] Erreur scraping: {e}")
+                return {'success': False, 'error': f'Erreur scraping: {str(e)}'}
+        
+        # Extraire le nom de l'entreprise depuis l'URL comme fallback
+        url_company_hint = ""
+        if url:
+            # Essayer d'extraire depuis le domaine
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            domain = parsed.netloc.replace('www.', '').replace('careers.', '').replace('jobs.', '')
+            # Extraire le nom principal (avant le premier point)
+            company_from_url = domain.split('.')[0]
+            url_company_hint = f"\n**CONTEXTE URL:** L'annonce provient du site {domain}, l'entreprise est probablement {company_from_url.title()}"
+        
+        prompt = f"""Tu es un expert en analyse d'offres d'emploi. Analyse cette annonce et extrais UNIQUEMENT les informations suivantes au format JSON strict :
+
+**ANNONCE :**
+{text}{url_company_hint}
+
+**INSTRUCTIONS :**
+Retourne UNIQUEMENT un objet JSON valide avec ces champs :
+{{
+  "entreprise": "nom de l'entreprise (cherche dans le texte, dans l'URL si besoin. NE METS PAS NULL si tu peux déduire)",
+  "poste": "titre du poste (si trouvé, sinon null)",
+  "type_contrat": "CDI, CDD, Stage, Alternance, Freelance, Interim ou Apprentissage (si trouvé, sinon null)",
+  "salaire": "fourchette de salaire (si mentionné, sinon null)",
+  "localisation": "ville ou lieu (si trouvé, sinon null)",
+  "competences": ["compétence1", "compétence2", "compétence3"],
+  "description_courte": "résumé en 1 phrase du poste"
+}}
+
+IMPORTANT : 
+- Pour l'entreprise, utilise toutes les infos disponibles (texte, URL, domaine)
+- Réponds UNIQUEMENT avec le JSON, sans texte avant ou après."""
+
+        try:
+            print(f"[AI Parse] Envoi requête à Gemini...")
+            response = requests.post(
+                f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.gemini_key}',
+                json={
+                    'contents': [{'parts': [{'text': prompt}]}],
+                    'generationConfig': {
+                        'temperature': 0.3,
+                        'maxOutputTokens': 800  # Augmenté pour éviter la troncature
+                    }
+                },
+                timeout=30
+            )
+            
+            print(f"[AI Parse] Status code: {response.status_code}")
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                text_response = result['candidates'][0]['content']['parts'][0]['text'].strip()
+                print(f"[AI Parse] Texte brut: {len(text_response)} caractères")
+                
+                # Nettoyer les markdown code blocks
+                # Enlever ```json au début
+                if text_response.startswith('```json'):
+                    text_response = text_response[7:].strip()
+                elif text_response.startswith('```'):
+                    text_response = text_response[3:].strip()
+                
+                # Enlever ``` à la fin
+                if text_response.endswith('```'):
+                    text_response = text_response[:-3].strip()
+                
+                # Enlever tout texte avant le premier { et après le dernier }
+                start_idx = text_response.find('{')
+                end_idx = text_response.rfind('}')
+                
+                if start_idx != -1 and end_idx != -1:
+                    text_response = text_response[start_idx:end_idx+1]
+                
+                print(f"[AI Parse] JSON extrait ({len(text_response)} chars):\n{text_response}\n[FIN]")
+                
+                import json
+                
+                try:
+                    parsed_data = json.loads(text_response)
+                    print(f"[AI Parse] ✓ Parsing réussi")
+                    
+                    return {
+                        'success': True,
+                        'data': parsed_data
+                    }
+                except json.JSONDecodeError as je:
+                    print(f"[AI Parse] ✗ Erreur JSON: {je}")
+                    print(f"[AI Parse] Position erreur: ligne {je.lineno}, colonne {je.colno}")
+                    
+                    return {
+                        'success': False, 
+                        'error': f'JSON invalide: {str(je)}'
+                    }
+            else:
+                error_text = response.text
+                print(f"[AI Parse] ERREUR: {error_text}")
+                return {'success': False, 'error': f'Erreur API {response.status_code}: {error_text}'}
+                
+        except Exception as e:
+            print(f"[AI Parse] EXCEPTION: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {'success': False, 'error': str(e)}
+    
+    def calculate_matching_score(self, job_data: Dict, user_profile: Dict) -> Dict:
+        """
+        Calcule un score de matching entre le profil utilisateur et l'offre (0-100)
+        """
+        if not self.gemini_key:
+            return {'success': False, 'error': 'Gemini API key non configurée'}
+        
+        prompt = f"""Tu es un expert en recrutement. Analyse la compatibilité entre ce profil candidat et cette offre d'emploi.
+
+**PROFIL CANDIDAT :**
+- Expérience : {user_profile.get('experience', 'Non spécifié')}
+- Compétences : {user_profile.get('competences', 'Non spécifié')}
+- Ville : {user_profile.get('ville', 'Non spécifié')}
+
+**OFFRE D'EMPLOI :**
+- Entreprise : {job_data.get('entreprise', 'N/A')}
+- Type de contrat : {job_data.get('type_contrat', 'N/A')}
+- Localisation : {job_data.get('localisation', 'N/A')}
+- Description : {job_data.get('annonce', 'N/A')}
+
+**INSTRUCTIONS :**
+Retourne UNIQUEMENT un JSON avec :
+{{
+  "score": 75,  // score de 0 à 100
+  "points_forts": ["point 1", "point 2", "point 3"],
+  "points_faibles": ["point 1", "point 2"],
+  "conseils": ["conseil 1", "conseil 2", "conseil 3"]
+}}
+
+IMPORTANT : JSON uniquement, sans texte additionnel."""
+
+        try:
+            response = requests.post(
+                f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.gemini_key}',
+                json={
+                    'contents': [{'parts': [{'text': prompt}]}],
+                    'generationConfig': {
+                        'temperature': 0.5,
+                        'maxOutputTokens': 800
+                    }
+                },
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                text_response = result['candidates'][0]['content']['parts'][0]['text'].strip()
+                
+                # Nettoyer la réponse
+                if text_response.startswith('```'):
+                    text_response = text_response.split('```')[1]
+                    if text_response.startswith('json'):
+                        text_response = text_response[4:]
+                text_response = text_response.strip()
+                
+                import json
+                analysis = json.loads(text_response)
+                
+                return {
+                    'success': True,
+                    'analysis': analysis
+                }
+            else:
+                return {'success': False, 'error': f'Erreur API: {response.status_code}'}
+                
+        except Exception as e:
+            return {'success': False, 'error': str(e)}

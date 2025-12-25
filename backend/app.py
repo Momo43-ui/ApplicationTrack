@@ -750,6 +750,77 @@ def check_ai_config():
         'gemini': bool(ai_service.gemini_key)
     })
 
+@app.route('/api/ai/parse-announcement', methods=['POST'])
+def parse_announcement():
+    """Parse automatiquement une annonce d'emploi"""
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        url = data.get('url')
+        
+        # Accepter soit text soit url
+        if not text and not url:
+            return jsonify({'success': False, 'error': 'Texte ou URL de l\'annonce requis'}), 400
+        
+        print(f"[Parse API] Text: {len(text) if text else 0} chars, URL: {url}")
+        
+        result = ai_service.parse_job_announcement(text, url)
+        
+        if result.get('success'):
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 500
+            
+    except Exception as e:
+        print(f"[Parse API] Exception: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/matching-score', methods=['POST'])
+def matching_score():
+    """Calcule le score de matching entre profil et offre"""
+    try:
+        data = request.get_json()
+        candidature_id = data.get('candidature_id')
+        user_id = data.get('user_id')
+        
+        if not candidature_id or not user_id:
+            return jsonify({'success': False, 'error': 'candidature_id et user_id requis'}), 400
+        
+        # Récupérer la candidature
+        candidature = Candidature.query.get(candidature_id)
+        if not candidature:
+            return jsonify({'success': False, 'error': 'Candidature non trouvée'}), 404
+        
+        # Récupérer le profil utilisateur
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'Utilisateur non trouvé'}), 404
+        
+        job_data = {
+            'entreprise': candidature.entreprise,
+            'annonce': candidature.annonce,
+            'type_contrat': candidature.type_contrat,
+            'localisation': candidature.localisation
+        }
+        
+        user_profile = {
+            'experience': data.get('experience', ''),
+            'competences': data.get('competences', ''),
+            'ville': user.ville or ''
+        }
+        
+        result = ai_service.calculate_matching_score(job_data, user_profile)
+        
+        if result.get('success'):
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/ai/chat', methods=['POST'])
 def chatbot_endpoint():
     """Endpoint pour le chatbot assistant"""

@@ -9,6 +9,10 @@ import AdvancedFilters from './components/AdvancedFilters';
 import ChatBot from './components/ChatBot';
 import CoverLetterGenerator from './components/CoverLetterGenerator';
 import CalendarView from './components/CalendarView';
+import MobileMenu from './components/MobileMenu';
+import ScrollToTop from './components/ScrollToTop';
+import Header from './components/Header';
+import Footer from './components/Footer';
 import { ToastContainer, useToast } from './components/Toast';
 import { getCandidatures, createCandidature, updateCandidatureEtat, getStats } from './services/api';
 import './App.css';
@@ -28,6 +32,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedJob, setSelectedJob] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     etat: '',
@@ -139,10 +144,10 @@ function App() {
   // Si non connecté, afficher la page de connexion
   if (!user) {
     return (
-      <>
+      <div className={darkMode ? 'dark' : ''}>
         <Auth onLogin={handleLogin} />
         <ToastContainer toasts={toasts} removeToast={removeToast} />
-      </>
+      </div>
     );
   }
 
@@ -160,7 +165,7 @@ function App() {
   if (currentPage === 'consultation' && selectedJob) {
     return (
       <div className={darkMode ? 'dark' : ''}>
-        <JobConsultation job={selectedJob} onBack={handleBackToDashboard} etats={etats} />
+        <JobConsultation job={selectedJob} onBack={handleBackToDashboard} etats={etats} userId={user.id} />
         <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
     );
@@ -170,42 +175,31 @@ function App() {
   if (currentPage === 'stats') {
     return (
       <div className={darkMode ? 'dark' : ''}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-          <header className="bg-white dark:bg-gray-800 shadow-md">
-            <div className="max-w-7xl mx-auto px-4 py-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    📊 Statistiques
-                  </h1>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage('dashboard')}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Retour
-                  </button>
-                  <button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {darkMode ? <Sun className="text-yellow-400" size={24} /> : <Moon className="text-gray-700" size={24} />}
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    Déconnexion
-                  </button>
-                </div>
-              </div>
-            </div>
-          </header>
-          <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex flex-col">
+          <Header 
+            user={user}
+            darkMode={darkMode}
+            setDarkMode={setDarkMode}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            onLogout={handleLogout}
+            onOpenMobileMenu={() => setMobileMenuOpen(true)}
+          />
+          <main className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
             <Dashboard userId={user.id} stats={stats} />
           </main>
+          <Footer />
         </div>
+        <MobileMenu
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          onLogout={handleLogout}
+          username={user.username}
+        />
         <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
     );
@@ -215,42 +209,31 @@ function App() {
   if (currentPage === 'coverletter') {
     return (
       <div className={darkMode ? 'dark' : ''}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-          <header className="bg-white dark:bg-gray-800 shadow-md">
-            <div className="max-w-7xl mx-auto px-4 py-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    ✍️ Générateur de Lettre de Motivation
-                  </h1>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage('dashboard')}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Retour
-                  </button>
-                  <button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {darkMode ? <Sun className="text-yellow-400" size={24} /> : <Moon className="text-gray-700" size={24} />}
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    Déconnexion
-                  </button>
-                </div>
-              </div>
-            </div>
-          </header>
-          <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex flex-col">
+          <Header 
+            user={user}
+            darkMode={darkMode}
+            setDarkMode={setDarkMode}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            onLogout={handleLogout}
+            onOpenMobileMenu={() => setMobileMenuOpen(true)}
+          />
+          <main className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
             <CoverLetterGenerator />
           </main>
+          <Footer />
         </div>
+        <MobileMenu
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          onLogout={handleLogout}
+          username={user.username}
+        />
         <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
     );
@@ -260,42 +243,36 @@ function App() {
   if (currentPage === 'calendar') {
     return (
       <div className={darkMode ? 'dark' : ''}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-          <header className="bg-white dark:bg-gray-800 shadow-md">
-            <div className="max-w-7xl mx-auto px-4 py-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    📅 Calendrier des Candidatures
-                  </h1>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage('dashboard')}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Retour
-                  </button>
-                  <button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {darkMode ? <Sun className="text-yellow-400" size={24} /> : <Moon className="text-gray-700" size={24} />}
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    Déconnexion
-                  </button>
-                </div>
-              </div>
-            </div>
-          </header>
-          <main className="max-w-7xl mx-auto px-4 py-8">
-            <CalendarView candidatures={jobs} />
-          </main>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex flex-col">
+          <Header 
+            user={user}
+            darkMode={darkMode}
+            setDarkMode={setDarkMode}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            onLogout={handleLogout}
+            onOpenMobileMenu={() => setMobileMenuOpen(true)}
+          />
+          <CalendarView 
+            jobs={jobs} 
+            onViewJob={(job) => {
+              setSelectedJob(job);
+              setCurrentPage('consultation');
+            }}
+            onBack={() => setCurrentPage('dashboard')}
+          />
+          <Footer />
         </div>
+        <MobileMenu
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          onLogout={handleLogout}
+          username={user.username}
+        />
         <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
     );
@@ -304,59 +281,20 @@ function App() {
   // Affichage du dashboard principal
   return (
     <div className={darkMode ? 'dark' : ''}>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex flex-col">
         {/* Header */}
-        <header className="bg-white dark:bg-gray-800 shadow-md">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                  📋 ApplicationTrack
-                </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Bienvenue, {user.username}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage('stats')}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                >
-                  📊 Statistiques
-                </button>
-                <button
-                  onClick={() => setCurrentPage('coverletter')}
-                  className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-                >
-                  ✍️ Lettre de motivation
-                </button>
-                <button
-                  onClick={() => setCurrentPage('calendar')}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-                >
-                  📅 Calendrier
-                </button>
-                <button
-                  onClick={() => setDarkMode(!darkMode)}
-                  className="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                  title={darkMode ? 'Mode clair' : 'Mode sombre'}
-                >
-                  {darkMode ? <Sun className="text-yellow-400" size={24} /> : <Moon className="text-gray-700" size={24} />}
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  Déconnexion
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
+        <Header
+          user={user}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          onLogout={handleLogout}
+          onOpenMobileMenu={() => setMobileMenuOpen(true)}
+        />
 
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 py-8">
-          {loading ? (
+        <main className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">\n          {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               <p className="mt-4 text-gray-600 dark:text-gray-300">Chargement...</p>
@@ -379,16 +317,27 @@ function App() {
           )}
         </main>
 
-        {/* Footer */}
-        <footer className="bg-white dark:bg-gray-800 mt-12 border-t border-gray-200 dark:border-gray-700">
-          <div className="max-w-7xl mx-auto px-4 py-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-            <p>ApplicationTrack © 2025 - Gérez vos candidatures efficacement</p>
-          </div>
-        </footer>
+        {/* Footer - cachée sur mobile pour ne pas gêner le menu */}
+        <Footer />
       </div>
+      
+      {/* Menu mobile */}
+      <MobileMenu
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        onLogout={handleLogout}
+        username={user.username}
+      />
       
       {/* Chatbot AI */}
       <ChatBot user={user} candidatures={jobs} />
+      
+      {/* Scroll to top button */}
+      <ScrollToTop />
       
       {/* Toast notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />

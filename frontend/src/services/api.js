@@ -11,11 +11,11 @@ const handleResponse = async (response) => {
 
 // ============= Authentication =============
 
-export const register = async (username, email, password) => {
+export const register = async (username, email, password, telephone, ville) => {
   const response = await fetch(`${API_URL}/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, email, password })
+    body: JSON.stringify({ username, email, password, telephone, ville })
   });
   return handleResponse(response);
 };

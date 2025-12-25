@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Download, TrendingUp, Users, CheckCircle, Clock } from 'lucide-react';
+import { Download, TrendingUp, Users, CheckCircle, Clock, Bell } from 'lucide-react';
 import { exportCandidatures } from '../services/api';
+import LoadingSkeleton from './LoadingSkeleton';
+import ScrollToTop from './ScrollToTop';
 
 const COLORS = {
   'en_attente': '#FCD34D',
@@ -67,16 +69,18 @@ export default function Dashboard({ userId, stats }) {
 
   if (loading) {
     return (
-      <div className="p-6 text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Chargement des statistiques...</p>
+      <div className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <LoadingSkeleton type="stat" count={4} />
+        </div>
+        <LoadingSkeleton type="chart" count={2} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 bg-red-50 text-red-600 rounded-lg">
+      <div className="p-6 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg">
         Erreur : {error}
       </div>
     );
@@ -84,7 +88,7 @@ export default function Dashboard({ userId, stats }) {
 
   if (!advancedStats || advancedStats.total === 0) {
     return (
-      <div className="p-6 text-center text-gray-500">
+      <div className="p-6 text-center text-gray-500 dark:text-gray-400">
         Aucune statistique disponible. Ajoutez des candidatures pour voir vos statistiques !
       </div>
     );
@@ -105,56 +109,57 @@ export default function Dashboard({ userId, stats }) {
   return (
     <div className="space-y-6">
       {/* En-tête avec bouton d'export */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">📊 Tableau de bord</h2>
+      <header className="sticky-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 py-3 sm:py-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">📊 Tableau de bord</h2>
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          className="btn-success flex items-center gap-2 text-sm sm:text-base px-3 sm:px-4 py-2"
         >
-          <Download size={20} />
-          Exporter CSV
+          <Download size={18} className="sm:w-5 sm:h-5" />
+          <span className="hidden xs:inline">Exporter CSV</span>
+          <span className="xs:hidden">Export</span>
         </button>
-      </div>
+      </header>
 
       {/* Cartes de statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Total</p>
-              <p className="text-3xl font-bold text-gray-800">{advancedStats.total}</p>
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-blue-500 dark:border-blue-400">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm truncate">Total</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">{advancedStats.total}</p>
             </div>
-            <Users className="text-blue-500" size={40} />
+            <Users className="text-blue-500 dark:text-blue-400 flex-shrink-0" size={32} />
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Taux de réponse</p>
-              <p className="text-3xl font-bold text-gray-800">{advancedStats.taux_reponse}%</p>
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-green-500 dark:border-green-400">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm truncate">Taux de réponse</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">{advancedStats.taux_reponse}%</p>
             </div>
-            <TrendingUp className="text-green-500" size={40} />
+            <TrendingUp className="text-green-500 dark:text-green-400 flex-shrink-0" size={32} />
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Taux d'entretien</p>
-              <p className="text-3xl font-bold text-gray-800">{advancedStats.taux_entretien}%</p>
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-purple-500 dark:border-purple-400">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm truncate">Taux d'entretien</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">{advancedStats.taux_entretien}%</p>
             </div>
-            <Clock className="text-purple-500" size={40} />
+            <Clock className="text-purple-500 dark:text-purple-400" size={40} />
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border-l-4 border-yellow-500 dark:border-yellow-400">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 text-sm">Taux d'acceptation</p>
-              <p className="text-3xl font-bold text-gray-800">{advancedStats.taux_acceptation}%</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Taux d'acceptation</p>
+              <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">{advancedStats.taux_acceptation}%</p>
             </div>
-            <CheckCircle className="text-yellow-500" size={40} />
+            <CheckCircle className="text-yellow-500 dark:text-yellow-400" size={40} />
           </div>
         </div>
       </div>
@@ -162,8 +167,8 @@ export default function Dashboard({ userId, stats }) {
       {/* Graphiques */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Diagramme circulaire - Répartition par état */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">Répartition par état</h3>
+        <div className="animate-fadeIn bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-xl transition-all" style={{animationDelay: '0.4s'}}>
+          <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Répartition par état</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -186,8 +191,8 @@ export default function Dashboard({ userId, stats }) {
         </div>
 
         {/* Graphique en barres - États */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">Candidatures par état</h3>
+        <div className="animate-fadeIn bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-xl transition-all" style={{animationDelay: '0.5s'}}>
+          <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Candidatures par état</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={pieData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -200,8 +205,8 @@ export default function Dashboard({ userId, stats }) {
         </div>
 
         {/* Timeline des 7 derniers jours */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">Timeline (7 derniers jours)</h3>
+        <div className="animate-fadeIn bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md hover:shadow-xl transition-all" style={{animationDelay: '0.6s'}}>
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-800 dark:text-gray-100">Timeline (7 derniers jours)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={timelineData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -215,8 +220,8 @@ export default function Dashboard({ userId, stats }) {
         </div>
 
         {/* Statistiques mensuelles */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">Évolution mensuelle</h3>
+        <div className="animate-fadeIn bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md hover:shadow-xl transition-all" style={{animationDelay: '0.7s'}}>
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-800 dark:text-gray-100">Évolution mensuelle</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" />
