@@ -188,7 +188,7 @@ function App() {
           <main className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
             <Dashboard userId={user.id} stats={stats} />
           </main>
-          <Footer />
+          <Footer setCurrentPage={setCurrentPage} />
         </div>
         <MobileMenu
           isOpen={mobileMenuOpen}
@@ -222,7 +222,7 @@ function App() {
           <main className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
             <CoverLetterGenerator />
           </main>
-          <Footer />
+          <Footer setCurrentPage={setCurrentPage} />
         </div>
         <MobileMenu
           isOpen={mobileMenuOpen}
@@ -261,7 +261,7 @@ function App() {
             }}
             onBack={() => setCurrentPage('dashboard')}
           />
-          <Footer />
+          <Footer setCurrentPage={setCurrentPage} />
         </div>
         <MobileMenu
           isOpen={mobileMenuOpen}
@@ -318,7 +318,7 @@ function App() {
         </main>
 
         {/* Footer - cachée sur mobile pour ne pas gêner le menu */}
-        <Footer />
+        <Footer setCurrentPage={setCurrentPage} />
       </div>
       
       {/* Menu mobile */}

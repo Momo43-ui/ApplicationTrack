@@ -66,31 +66,31 @@ export default function Header({
             {/* Bouton menu hamburger pour mobile/tablette */}
             <button
               onClick={onOpenMobileMenu}
-              className="md:hidden p-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+              className="lg:hidden p-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
               aria-label="Open menu"
             >
               <Menu className="text-gray-700 dark:text-gray-300" size={20} />
             </button>
 
-            {/* Boutons desktop */}
-            <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
+            {/* Boutons desktop - visibles uniquement sur grands écrans */}
+            <div className="hidden lg:flex items-center gap-2">
               <button
                 onClick={() => setDarkMode(!darkMode)}
                 className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all transform hover:scale-110"
                 aria-label="Toggle dark mode"
               >
                 {darkMode ? (
-                  <Sun className="text-yellow-400" size={18} />
+                  <Sun className="text-yellow-400" size={20} />
                 ) : (
-                  <Moon className="text-gray-700" size={18} />
+                  <Moon className="text-gray-700 dark:text-gray-300" size={20} />
                 )}
               </button>
               <button
                 onClick={onLogout}
-                className="btn-danger flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
+                className="btn-danger flex items-center gap-2 px-4 py-2"
               >
-                <LogOut size={16} className="sm:w-[18px] sm:h-[18px]" />
-                <span className="hidden lg:inline">Déconnexion</span>
+                <LogOut size={18} />
+                <span>Déconnexion</span>
               </button>
             </div>
           </div>

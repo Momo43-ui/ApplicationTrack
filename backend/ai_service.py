@@ -475,26 +475,76 @@ IMPORTANT : JSON uniquement, sans texte additionnel."""
                 timeout=30
             )
             
+            if response.status_code == 429:
+                return {
+                    'success': False,
+                    'error': 'Quota API Gemini dépassé (429). Veuillez réessayer dans quelques minutes ou vérifier votre clé API.'
+                }
+            
             if response.status_code == 200:
                 result = response.json()
                 text_response = result['candidates'][0]['content']['parts'][0]['text'].strip()
                 
-                # Nettoyer la réponse
+                print(f"[AI Service] Réponse brute Gemini: {text_response[:200]}...")
+                
+                # Nettoyer la réponse de manière plus robuste
                 if text_response.startswith('```'):
-                    text_response = text_response.split('```')[1]
-                    if text_response.startswith('json'):
-                        text_response = text_response[4:]
+                    # Extraire le contenu entre les ``` markers
+                    parts = text_response.split('```')
+                    if len(parts) >= 2:
+                        text_response = parts[1]
+                        # Supprimer le mot 'json' si présent au début
+                        if text_response.strip().startswith('json'):
+                            text_response = text_response.strip()[4:]
+                
+                # Supprimer les espaces et retours à la ligne au début et à la fin
                 text_response = text_response.strip()
                 
-                import json
-                analysis = json.loads(text_response)
+                # Si la réponse contient du texte avant le JSON, essayer de l'extraire
+                if not text_response.startswith('{'):
+                    # Chercher le premier {
+                    start_idx = text_response.find('{')
+                    if start_idx != -1:
+                        text_response = text_response[start_idx:]
                 
-                return {
-                    'success': True,
-                    'analysis': analysis
-                }
+                # Si la réponse contient du texte après le JSON, essayer de le supprimer
+                if not text_response.endswith('}'):
+                    # Chercher le dernier }
+                    end_idx = text_response.rfind('}')
+                    if end_idx != -1:
+                        text_response = text_response[:end_idx + 1]
+                
+                print(f"[AI Service] JSON nettoyé: {text_response[:200]}...")
+                
+                import json
+                try:
+                    analysis = json.loads(text_response)
+                    
+                    # Valider la structure
+                    if not isinstance(analysis, dict):
+                        return {'success': False, 'error': 'Format de réponse invalide'}
+                    
+                    # S'assurer que tous les champs nécessaires sont présents
+                    if 'score' not in analysis:
+                        analysis['score'] = 50  # Valeur par défaut
+                    if 'points_forts' not in analysis:
+                        analysis['points_forts'] = []
+                    if 'points_faibles' not in analysis:
+                        analysis['points_faibles'] = []
+                    if 'conseils' not in analysis:
+                        analysis['conseils'] = []
+                    
+                    return {
+                        'success': True,
+                        'analysis': analysis
+                    }
+                except json.JSONDecodeError as je:
+                    print(f"[AI Service] Erreur JSON: {str(je)}")
+                    print(f"[AI Service] Texte problématique: {text_response}")
+                    return {'success': False, 'error': f'Impossible de parser la réponse: {str(je)}'}
             else:
                 return {'success': False, 'error': f'Erreur API: {response.status_code}'}
                 
         except Exception as e:
+            print(f"[AI Service] Exception: {str(e)}")
             return {'success': False, 'error': str(e)}

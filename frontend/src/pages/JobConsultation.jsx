@@ -33,14 +33,21 @@ function JobConsultation({ job, onBack, etats, userId }) {
 
   // Charger le score de matching au chargement
   useEffect(() => {
-    if (job.id && userId) {
+    console.log('[JobConsultation] useEffect - job.id:', job.id, 'userId:', userId);
+    if (job.id && userId && showMatchingAnalysis) {
+      console.log('[JobConsultation] Conditions remplies, appel loadMatchingScore');
       loadMatchingScore();
+    } else {
+      console.log('[JobConsultation] Conditions non remplies pour loadMatchingScore');
     }
-  }, [job.id, userId]);
+  }, [job.id, userId, showMatchingAnalysis]);
 
   const loadMatchingScore = async () => {
     setMatchingLoading(true);
+    setError('');
     try {
+      console.log('[Matching Score] Envoi requête pour job:', job.id, 'user:', userId);
+      
       const response = await fetch(`${API_URL}/ai/matching-score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,12 +59,22 @@ function JobConsultation({ job, onBack, etats, userId }) {
         })
       });
 
+      console.log('[Matching Score] Statut réponse:', response.status);
       const data = await response.json();
+      console.log('[Matching Score] Données reçues:', data);
+      
       if (data.success && data.analysis) {
         setMatchingData(data.analysis);
+        console.log('[Matching Score] Score chargé avec succès:', data.analysis);
+      } else {
+        console.error('[Matching Score] Erreur dans la réponse:', data.error);
+        setError(data.error || 'Erreur lors du calcul du score de matching');
+        setTimeout(() => setError(''), 5000);
       }
     } catch (error) {
-      console.error('Erreur matching score:', error);
+      console.error('[Matching Score] Exception:', error);
+      setError('Impossible de calculer le score de matching. Vérifiez votre connexion.');
+      setTimeout(() => setError(''), 5000);
     } finally {
       setMatchingLoading(false);
     }
@@ -226,66 +243,49 @@ function JobConsultation({ job, onBack, etats, userId }) {
               </div>
             )}
 
-            {/* Boutons d'action en haut */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+            {/* Boutons d'action */}
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               <button
                 onClick={() => setShowMatchingAnalysis(!showMatchingAnalysis)}
-                className="group relative px-2 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-800 border-2 border-green-500 dark:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl transition-all duration-200 hover:shadow-md"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
               >
-                <div className="flex flex-col items-center gap-1 sm:gap-2">
-                  <div className="p-1.5 sm:p-2 bg-green-100 dark:bg-green-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                    <Target size={18} className="sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 text-center leading-tight">Score matching</span>
-                </div>
+                <Target size={18} />
+                <span className="text-sm font-medium hidden sm:inline">Score matching</span>
+                <span className="text-sm font-medium sm:hidden">Score</span>
               </button>
               
               <button
                 onClick={() => setShowCoverLetterForm(!showCoverLetterForm)}
-                className="group relative px-2 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-800 border-2 border-purple-500 dark:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all duration-200 hover:shadow-md"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
               >
-                <div className="flex flex-col items-center gap-1 sm:gap-2">
-                  <div className="p-1.5 sm:p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                    <span className="text-xl sm:text-2xl">✍️</span>
-                  </div>
-                  <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 text-center leading-tight">Générer lettre</span>
-                </div>
+                <span className="text-lg leading-none">✍️</span>
+                <span className="text-sm font-medium hidden sm:inline">Générer lettre</span>
+                <span className="text-sm font-medium sm:hidden">Lettre</span>
               </button>
               
               <button
                 onClick={() => setShowRappelForm(!showRappelForm)}
-                className="group relative px-2 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-800 border-2 border-orange-500 dark:border-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-xl transition-all duration-200 hover:shadow-md"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
               >
-                <div className="flex flex-col items-center gap-1 sm:gap-2">
-                  <div className="p-1.5 sm:p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                    <Bell size={18} className="sm:w-5 sm:h-5 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 text-center leading-tight">Planifier rappel</span>
-                </div>
+                <Bell size={18} />
+                <span className="text-sm font-medium hidden sm:inline">Planifier rappel</span>
+                <span className="text-sm font-medium sm:hidden">Rappel</span>
               </button>
               
               <button
                 onClick={() => setShowEditForm(true)}
-                className="group relative px-2 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-800 border-2 border-blue-500 dark:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all duration-200 hover:shadow-md"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
               >
-                <div className="flex flex-col items-center gap-1 sm:gap-2">
-                  <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                    <span className="text-xl sm:text-2xl">✏️</span>
-                  </div>
-                  <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">Modifier</span>
-                </div>
+                <span className="text-lg leading-none">✏️</span>
+                <span className="text-sm font-medium">Modifier</span>
               </button>
               
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="group relative px-2 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 hover:shadow-md"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white rounded-lg transition-all duration-200 hover:shadow-md"
               >
-                <div className="flex flex-col items-center gap-1 sm:gap-2">
-                  <div className="p-1.5 sm:p-2 bg-red-100 dark:bg-red-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                    <span className="text-xl sm:text-2xl">🗑️</span>
-                  </div>
-                  <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">Supprimer</span>
-                </div>
+                <span className="text-lg leading-none">🗑️</span>
+                <span className="text-sm font-medium">Supprimer</span>
               </button>
             </div>
 
@@ -378,9 +378,45 @@ function JobConsultation({ job, onBack, etats, userId }) {
                       Recalculer le score
                     </button>
                   </div>
+                ) : error ? (
+                  <div className="text-center py-6">
+                    <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4">
+                      ❌ {error}
+                    </div>
+                    <button
+                      onClick={loadMatchingScore}
+                      className="px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-bold rounded-lg transition-all inline-flex items-center gap-2"
+                    >
+                      <Sparkles size={20} />
+                      Réessayer
+                    </button>
+                  </div>
                 ) : (
-                  <div className="text-center py-6 text-gray-600 dark:text-gray-400">
-                    <p>Aucune analyse disponible. Cliquez sur le bouton ci-dessus pour lancer l'analyse.</p>
+                  <div className="text-center py-8">
+                    <div className="mb-6">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+                        <Sparkles className="text-green-600 dark:text-green-400" size={32} />
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">Aucune analyse disponible</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-500">Cliquez ci-dessous pour analyser votre compatibilité avec ce poste</p>
+                    </div>
+                    <button
+                      onClick={loadMatchingScore}
+                      disabled={matchingLoading}
+                      className="px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-all inline-flex items-center gap-2"
+                    >
+                      {matchingLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          <span>Analyse en cours...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={20} />
+                          <span>Lancer l'analyse</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 )}
               </div>
@@ -402,7 +438,7 @@ function JobConsultation({ job, onBack, etats, userId }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
-                      className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg transition-colors">
+                      className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg transition-colors"
                     >
                       Annuler
                     </button>

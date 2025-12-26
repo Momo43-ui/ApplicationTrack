@@ -1,6 +1,6 @@
 import { Github, Linkedin, Mail, Heart } from 'lucide-react';
 
-export default function Footer() {
+export default function Footer({ setCurrentPage }) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -25,19 +25,28 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <button 
+                  onClick={() => setCurrentPage?.('dashboard')}
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left"
+                >
                   📊 Tableau de bord
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <button 
+                  onClick={() => setCurrentPage?.('stats')}
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left"
+                >
                   📈 Statistiques
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <button 
+                  onClick={() => setCurrentPage?.('calendar')}
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left"
+                >
                   📅 Calendrier
-                </a>
+                </button>
               </li>
             </ul>
           </div>

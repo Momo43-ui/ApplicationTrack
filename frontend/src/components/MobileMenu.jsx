@@ -1,7 +1,8 @@
-import { useState } from 'react';
 import { Menu, X, Home, BarChart3, FileText, Calendar, LogOut, Moon, Sun } from 'lucide-react';
 
 export default function MobileMenu({ 
+  isOpen,
+  onClose,
   currentPage, 
   setCurrentPage, 
   darkMode, 
@@ -9,15 +10,9 @@ export default function MobileMenu({
   onLogout, 
   username 
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
-
   const handleNavigation = (page) => {
     setCurrentPage(page);
-    setIsOpen(false);
+    onClose();
   };
 
   const menuItems = [
@@ -28,34 +23,36 @@ export default function MobileMenu({
 
   return (
     <>
-      {/* Bouton hamburger - Visible uniquement sur mobile */}
-      <button
-        onClick={toggleMenu}
-        className="md:hidden fixed top-4 right-4 z-50 p-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
-        aria-label="Menu"
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
       {/* Overlay */}
       {isOpen && (
         <div
-          onClick={toggleMenu}
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={onClose}
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
         />
       )}
 
       {/* Menu mobile */}
       <div
-        className={`md:hidden fixed top-0 right-0 h-full w-64 bg-white dark:bg-gray-800 shadow-2xl z-40 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-64 bg-white dark:bg-gray-800 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Header du menu */}
           <div className="p-4 bg-blue-600 dark:bg-blue-700 text-white">
-            <h3 className="text-lg font-bold truncate">👋 {username}</h3>
-            <p className="text-sm text-blue-100">ApplicationTrack</p>
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-bold truncate">👋 {username}</h3>
+                <p className="text-sm text-blue-100">ApplicationTrack</p>
+              </div>
+              <button
+                onClick={onClose}
+                className="ml-2 p-1 hover:bg-blue-700 dark:hover:bg-blue-800 rounded transition-colors"
+                aria-label="Fermer le menu"
+              >
+                <X size={24} />
+              </button>
+            </div>
           </div>
 
           {/* Navigation */}
@@ -87,7 +84,7 @@ export default function MobileMenu({
             <button
               onClick={() => {
                 setDarkMode(!darkMode);
-                setIsOpen(false);
+                onClose();
               }}
               className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
@@ -108,7 +105,7 @@ export default function MobileMenu({
             <button
               onClick={() => {
                 onLogout();
-                setIsOpen(false);
+                onClose();
               }}
               className="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-medium"
             >
